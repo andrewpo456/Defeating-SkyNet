@@ -42,6 +42,7 @@ def verify_file(f):
 
 def process_file(fn, f):
     if verify_file(f):
+        # TODO:
         # If it was, store it unmodified
         # (so it can be sent to other bots)
         # Decrypt and run the file

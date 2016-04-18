@@ -1,5 +1,6 @@
 # We're using Python's builtin random
 # NOTE: This is not cryptographically strong
+# TODO: Determine if we are required to implement a stronger PRNG
 import random
 import time
 
