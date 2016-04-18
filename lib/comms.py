@@ -65,9 +65,11 @@ class StealthConn(object):
         return data
     
     def encrypt(self):
+        print("Encrypting...") #Remove when function implemented
         ## TODO - Implement block cipher
     
     def decrypt(self):
+        print("Decrypting...") #Remove when function implemented
         ## TODO - Implement block cipher
         
 
