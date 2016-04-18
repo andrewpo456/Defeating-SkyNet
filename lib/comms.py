@@ -63,6 +63,13 @@ class StealthConn(object):
             data = encrypted_data
 
         return data
+    
+    def encrypt(self):
+        ## TODO - Implement block cipher
+    
+    def decrypt(self):
+        ## TODO - Implement block cipher
+        
 
     def close(self):
         self.conn.close()
