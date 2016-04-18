@@ -1,15 +1,18 @@
 Welcome to SkyNet
 =================
-TEST-----
-Part 1 Brief Review
-(full details: check docs)
--------------------
-+ Add code to dh/__init__.py
-   1. What choice of parameters are you deciding on for DH?
-   2. What's the proper way to calculate the private, public and shared keys?
-+ Modify the way ciphers are used in lib/comms.py
-   1. What's your choice of cypher? Why did you select it?
-   2. Are your messages vulnerable to tampering, replay or frequency analysis?
+Almost every device with a CPU in it has been connected to the internet. Whilst this is a 
+stunning advance for hummanity, the security for these devices has come as an atferthought or not 
+at all. Millions of computers and devices, all with valuable information and processing power 
+are left vunerable to attack.
+
+This project specifically looks at botnets: how they work, why they're valuable and why it's so 
+difficult to defeat them.
+Please note this project is intented for learning purposes only, it is not an operational botnet nor do 
+we intend to create one. It has been created to help gain an understanding in how practical a massive cyber 
+attack is and how complex it can be to defend against it.
+
+Please note, that the premise of this project has been taken from the UTS subject 'Fundamentals of Security'.
+
 
 Usage: Solo
 ===========
@@ -96,6 +99,15 @@ Receiving packet of length 4 <br />
 Encrypted data: b'\x01JQA' <br />
 Original data: b'exit' <br />
 Enter command: exit <br />
+
+TODO:
+-------------------
++ Add code to dh/__init__.py
+   1. What choice of parameters are you deciding on for DH?
+   2. What's the proper way to calculate the private, public and shared keys?
++ Modify the way ciphers are used in lib/comms.py
+   1. What's your choice of cypher? Why did you select it?
+   2. Are your messages vulnerable to tampering, replay or frequency analysis?
 
 Notice: 'Test' and 'exit' are sent and received as the same encrypted message.
 This means it's vulnerable to frequency analysis. When 'a' is sent multiple times,
