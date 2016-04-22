@@ -9,6 +9,7 @@ class StealthConn(object):
     self.conn = conn
     self.encryptCipher = None
     self.decryptCipher = None
+    self.session_nonce_hash = None # Note this is stored in byte format
     self.client = client
     self.server = server
     self.verbose = verbose
@@ -39,7 +40,7 @@ class StealthConn(object):
     
     return self.conn.recv(pkt_len), pkt_len
 
-  def __sync_session_nonce(self, shared_hash):
+  def __sync_session_nonces(self, shared_hash):
     """
     Used to generate and synchronise nonces between
     client and server. This is to prevent relplay
@@ -50,20 +51,23 @@ class StealthConn(object):
       snonce = bytes(str(random.randint(1, 2**4096)), "ascii")
       self.__packet_send(snonce)
       
-      # Recieve the session_hash of client and server nonces from the client
-      session_hash = self.__packet_recv()
+      # Recieve the session_nonce_hash from the client and decode
+      self.session_nonce_hash, pkt_len = self.__packet_recv()
+      self.__print_verbose("Shared session nonce (server): {0}".format(self.session_nonce_hash))
+      
       
     if self.client:
       # Generate the pseudorandom client nonce and recieve the server nonce
-      cnonce = bytes(str(random.randint(1, 2**4096)), "ascii")
-      snonce = self.__packet_recv()
+      cnonce = bytes(str(random.randint(1, 2**4096)), "ascii") # The client nonce is kept secret and thrown away afterwards
+      snonce, pkt_len = self.__packet_recv()
 
       # Calculate the session nonces with shared secret hash
-      session_nonce = snonce + cnonce + shared_hash
-      session_hash = SHA256.new(bytes(session_nonce)).hexdigest()
+      calculated_nonce = snonce + cnonce + str.encode(shared_hash)
+      self.session_nonce_h = str.encode(SHA256.new(bytes(calculated_nonce)).hexdigest())
       
-      # Encode the data's length into an unsigned two byte int ('H')
-      self.__packet_send(session_hash)
+      # Encode the string to bytes for transmission and send
+      self.__packet_send(self.session_nonce_h)
+      self.__print_verbose("Shared session nonce (client): {0}".format(self.session_nonce_h))
     
   def initiate_session(self):
     """
@@ -86,7 +90,7 @@ class StealthConn(object):
       shared_hash = calculate_dh_secret(their_public_key, my_private_key)
       print("Shared hash: {}".format(shared_hash))
        
-      # self.__sync_session_nonce(shared_hash)
+      self.__sync_session_nonces(shared_hash)
 
 
     # Default XOR algorithm can only take a key of length 32 - TODO: Implement AES cipher
