@@ -1,5 +1,6 @@
 from Crypto.Hash import SHA256
 from Crypto.Random import random
+from fractions import gcd
 
 from lib.helpers import read_hex
 
@@ -29,22 +30,28 @@ raw_prime = """FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
       FFFFFFFF FFFFFFFF"""
 # Convert from the value supplied in the RFC to an integer
 prime = read_hex(raw_prime)
-# Generator for 4096-bit prime as supplied by RFC 3526
-generator = 2 
 
 def create_dh_key():    
     # Returns a Diffie-Hellman public(e), private(d) key pair
-    # Select Random integer: 1 < e < (p - 1)
-    # randint(a, b) returns a random integer N such that a <= N <= b 
-    e = random.randint(2, prime - 2)
+    phi_n = prime - 1    
     
-    # Calculate the private key - e^(p-1)-1 mod (p-1)
-    d = pow(e, prime - 2, prime - 1)
+    # Select a random integer e so that it satisfies:
+    # (a) 1 < e < phi_n
+    # (b) gcd(e, phi_n) == 1 (i.e. e and phi_n are coprime)
+    #    
+    # Note: randint(a, b) returns a random integer N such that a <= N <= b     
+    while True:
+      e = random.randint(2, phi_n - 1)
+      if (gcd(e, phi_n) == 1):
+        break   
 
+    # Calculate the private key - e**(phi_n-1) mod phi_n
+    d = pow(e, phi_n - 1, phi_n)
     return (e, d)
 
 def calculate_dh_secret(their_public, my_private):
-    # Calculate the shared secret
+    # Calculate the shared secret:    
+    # shared_secret = pow(their_public, my_private, prime): TODO - is the correct method?
     shared_secret = their_public * my_private
 
     # Hash the value so that:
@@ -53,6 +60,6 @@ def calculate_dh_secret(their_public, my_private):
     # (b) We can convert to raw bytes easily
     # (c) We could add additional information if we wanted
 
-    # TODO: Feel free to change SHA256 to a different value if more appropriate??
+    # TODO: Determine if we should add additional information to the the HASH?
     shared_hash = SHA256.new(bytes(str(shared_secret), "ascii")).hexdigest()
     return shared_hash
