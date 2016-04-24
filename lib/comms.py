@@ -2,6 +2,7 @@ import struct
 from Crypto.Hash import SHA256
 from Crypto.Random import random
 from Crypto.Cipher import XOR
+from Crypto.Cipher import AES
 from dh import create_dh_key, calculate_dh_secret
 
 class StealthConn(object):
@@ -71,7 +72,7 @@ class StealthConn(object):
     
   def initiate_session(self):
     """
-    Initiates session between client and server bots
+    ##Initiates session between client and server bots
     """
     # Perform the initial connection handshake for agreeing on a shared secret
     # TODO: Is there initial connection work here?
