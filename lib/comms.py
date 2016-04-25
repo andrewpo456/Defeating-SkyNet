@@ -9,12 +9,16 @@ from dh import create_dh_key, calculate_dh_secret
 class StealthConn(object):
   def __init__(self, conn, client=False, server=False, verbose=True):
     self.conn = conn
-    self.encryptCipher = None
-    self.decryptCipher = None
     self.session_nonce_hash = None # Note this is stored in byte format
     self.client = client
     self.server = server
     self.verbose = verbose
+    self.encryptCipher = None
+    self.decryptCipher = None
+    self.my_private_key = None
+    self.my_public_key = None
+    self.their_public_key = None
+    
     self.initiate_session()
 
   def __print_verbose(self, string):
@@ -76,17 +80,17 @@ class StealthConn(object):
     # Perform the initial connection handshake for agreeing on a shared secret
     # This can be broken into code run just on the server or just on the client
     if self.server or self.client:
-      my_public_key, my_private_key = create_dh_key()
+      self.my_public_key, self.my_private_key = create_dh_key()
 
       # Send them our public key
-      self.__packet_send(bytes(str(my_public_key), "ascii"))
+      self.__packet_send(bytes(str(self.my_public_key), "ascii"))
 
       # Receive their public key - Used in Cipher as encryption key
       pubKey, key_len = self.__packet_recv()
-      their_public_key = int(pubKey)
+      self.their_public_key = int(pubKey)
 
       # Obtain our shared secret
-      shared_hash = calculate_dh_secret(their_public_key, my_private_key)
+      shared_hash = calculate_dh_secret(self.their_public_key, self.my_private_key)
       print("Shared hash: {}".format(shared_hash))
        
       self.__sync_session_nonces(shared_hash)
@@ -102,10 +106,10 @@ class StealthConn(object):
       	
     # Default XOR algorithm can only take a key of length 32  
 	## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
-    ##XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
+    ## XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
 	
 	#Implement AES cipher
-	self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv)
+    self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv)
     self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv) 
 
   def send(self, data):
