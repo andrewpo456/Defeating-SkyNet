@@ -22,9 +22,7 @@ class StealthConn(object):
    
   def __packet_send(self, data):
     """ 
-    Sends data in a 'packet'
-    Send 1: Contains the length of data
-    Send 2: Contains the data itself
+    Sends data in a 'packet'.
     """
     # Encode the data's length into an unsigned two byte int ('H')
     pkt_len = struct.pack('H', len(data))
@@ -33,8 +31,8 @@ class StealthConn(object):
 
   def __packet_recv(self):
     """ 
-    Recieves a packet from the network
-    and returns data + length of packet
+    Recieves a packet from the network.
+    Returns data and length of the data.
     """
     pkt_len_packed = self.conn.recv(struct.calcsize('H'))
     pkt_len = struct.unpack('H', pkt_len_packed)[0]
@@ -44,7 +42,7 @@ class StealthConn(object):
   def __sync_session_nonces(self, shared_hash):
     """
     Used to generate and synchronise nonces between
-    client and server. This is to prevent relplay
+    client and server. This is used to prevent relplay
     attacks.
     """
     if self.server:
@@ -64,28 +62,27 @@ class StealthConn(object):
 
       # Calculate the session nonces with shared secret hash
       calculated_nonce = snonce + cnonce + str.encode(shared_hash)
-      self.session_nonce_h = str.encode(SHA256.new(bytes(calculated_nonce)).hexdigest())
+      self.session_nonce_hash = str.encode(SHA256.new(bytes(calculated_nonce)).hexdigest())
       
       # Encode the string to bytes for transmission and send
-      self.__packet_send(self.session_nonce_h)
-      self.__print_verbose("Shared session nonce (client): {0}".format(self.session_nonce_h))
+      self.__packet_send(self.session_nonce_hash)
+      self.__print_verbose("Shared session nonce (client): {0}".format(self.session_nonce_hash))
     
   def initiate_session(self):
     """
-    ##Initiates session between client and server bots
+    Initiates session between client and server bots.
     """
     # Perform the initial connection handshake for agreeing on a shared secret
-    # TODO: Is there initial connection work here?
-
     # This can be broken into code run just on the server or just on the client
     if self.server or self.client:
       my_public_key, my_private_key = create_dh_key()
 
       # Send them our public key
-      self.send(bytes(str(my_public_key), "ascii"))
+      self.__packet_send(bytes(str(my_public_key), "ascii"))
 
       # Receive their public key - Used in Cipher as encryption key
-      their_public_key = int(self.recv())
+      pubKey, key_len = self.__packet_recv()
+      their_public_key = int(pubKey)
 
       # Obtain our shared secret
       shared_hash = calculate_dh_secret(their_public_key, my_private_key)
@@ -102,7 +99,6 @@ class StealthConn(object):
     """
     Encrypt and send data over the network.
     """
-    #TODO: Add Anti-Replay Mechanism
     if self.encryptCipher:
       encrypted_data = self.encryptCipher.encrypt(data)
 
@@ -114,24 +110,42 @@ class StealthConn(object):
       encrypted_data = data
 
     #TODO: Remember to send HMAC too AND IV
-    self.__packet_send(encrypted_data)
+    self.__packet_send(self.session_nonce_hash)  # Send the session nonce (for Anti-Replay attacks)
+    self.__packet_send(encrypted_data)           # Send the encrypted data
+    self.__packet_send(bytes(str(5), "ascii"))   # TODO: Replace with HMAC
 
   def recv(self):
     """
     Recieve and decrypt data from the network.
     """
-    #TODO: Add Anti-Replay Mechanism and HMAC
-    # Recieve the encrypted data        
-    encrypted_data, pkt_len = self.__packet_recv()
+    # Recieve the encrypted data with session nonce and HMAC
+    snh, snh_len = self.__packet_recv()        
+    encrypted_data, data_len = self.__packet_recv()
+    hmac, hmac_len = self.__packet_recv()
+    
+    data = None # Set data to none initially
+    
+    # Perform Anti-Replay check
+    if snh == self.session_nonce_hash:
+      # Autenticate with HMAC
+      calc_hmac = 5 # TODO Implement calculation - hash(shared_hash + encrypted_data)
+      
+      if bytes(str(calc_hmac), 'ascii') == hmac:      
+        # Decrypt data
+        if self.decryptCipher:
+          data = self.decryptCipher.decrypt(encrypted_data)
 
-    if self.decryptCipher:
-      data = self.decryptCipher.decrypt(encrypted_data)
-
-      self.__print_verbose("Receiving packet of length {}".format(pkt_len))
-      self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
-      self.__print_verbose("Original data: {}".format(data))    
+          self.__print_verbose("Receiving packet of length {}".format(data_len))
+          self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
+          self.__print_verbose("Original data: {}".format(data))    
+        else:
+          data = encrypted_data
+      else:
+        self.__print_verbose("Autentication Failed!")
+        self.close()
     else:
-      data = encrypted_data
+      self.__print_verbose("Replay Attack detected!")
+      self.close()
 
     return data
 
