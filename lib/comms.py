@@ -90,7 +90,15 @@ class StealthConn(object):
        
       self.__sync_session_nonces(shared_hash)
 
-
+	#get IV value for creating ciphers
+	iv = Crypto.Random.OSRNG.posix.new().read(AES.block_size)
+	
+	#iv = int(hexlify(Random.new().read(AES.block_size)), 16)
+	#iv_encrypt_counter = Counter.new(128, initial_value=ctr_iv)
+	#iv_decrypt_counter = Counter.new(128, initial_value=ctr_iv)
+	#self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv_encrypt_counter)
+	#self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv_decrypt_counter)
+      	
     # Default XOR algorithm can only take a key of length 32 - TODO: Implement AES cipher
     self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv)## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
     self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv) ##XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
