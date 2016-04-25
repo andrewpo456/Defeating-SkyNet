@@ -1,5 +1,6 @@
 import struct
 from Crypto.Hash import SHA256
+from Crypto.Hash import HMAC
 from Crypto.Random import random
 from Crypto.Cipher import XOR
 from Crypto.Cipher import AES
@@ -99,9 +100,13 @@ class StealthConn(object):
 	#self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv_encrypt_counter)
 	#self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv_decrypt_counter)
       	
-    # Default XOR algorithm can only take a key of length 32 - TODO: Implement AES cipher
-    self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv)## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
-    self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv) ##XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
+    # Default XOR algorithm can only take a key of length 32  
+	## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
+    ##XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
+	
+	#Implement AES cipher
+	self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv)
+    self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv) 
 
   def send(self, data):
     """
@@ -118,10 +123,12 @@ class StealthConn(object):
       encrypted_data = data
 
     #TODO: Remember to send HMAC too AND IV
+	mac = "bb46120970e71e1d63253a124c19ed4bd7f4268410f4e57e637d66f82d30ac3e"
     self.__packet_send(self.session_nonce_hash)  # Send the session nonce (for Anti-Replay attacks)
     self.__packet_send(encrypted_data)           # Send the encrypted data
-    self.__packet_send(bytes(str(5), "ascii"))   # TODO: Replace with HMAC
-
+    self.__packet_send(bytes(mac, "ascii"))   # TODO: Replace with HMAC
+	self.__packet_send(bytes(shared_hash, "ascii"))  
+	
   def recv(self):
     """
     Recieve and decrypt data from the network.
@@ -130,14 +137,16 @@ class StealthConn(object):
     snh, snh_len = self.__packet_recv()        
     encrypted_data, data_len = self.__packet_recv()
     hmac, hmac_len = self.__packet_recv()
+	secret, secret_len = self.__packet_recv()
     
     data = None # Set data to none initially
     
     # Perform Anti-Replay check
     if snh == self.session_nonce_hash:
       # Autenticate with HMAC
-      calc_hmac = 5 # TODO Implement calculation - hash(shared_hash + encrypted_data)
-      
+      calc_hmac = HMAC.new(secret, digestmod=SHA256) # TODO Implement calculation - hash(shared_hash + encrypted_data)
+      calc_hmac.update(encrypted_data)
+	  
       if bytes(str(calc_hmac), 'ascii') == hmac:      
         # Decrypt data
         if self.decryptCipher:
