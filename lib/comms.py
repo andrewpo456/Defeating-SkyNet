@@ -18,6 +18,7 @@ class StealthConn(object):
     self.my_private_key = None
     self.my_public_key = None
     self.their_public_key = None
+	self.shared_hash = None
     
     self.initiate_session()
 
@@ -125,13 +126,15 @@ class StealthConn(object):
     else:
       # If the cipher has not been created, just send the plaintext data (BAD)
       encrypted_data = data
-
+	
+	hmac = HMAC.new(shared_hash, digestmod=SHA256)
+	hmac.update(encrypted_data)
     #TODO: Remember to send HMAC too AND IV
-	mac = "bb46120970e71e1d63253a124c19ed4bd7f4268410f4e57e637d66f82d30ac3e"
+	 
     self.__packet_send(self.session_nonce_hash)  # Send the session nonce (for Anti-Replay attacks)
     self.__packet_send(encrypted_data)           # Send the encrypted data
-    self.__packet_send(bytes(mac, "ascii"))   # TODO: Replace with HMAC
-	self.__packet_send(bytes(shared_hash, "ascii"))  
+    self.__packet_send(bytes(str(hmac), "ascii"))   # TODO: Replace with HMAC
+	  
 	
   def recv(self):
     """
@@ -141,14 +144,14 @@ class StealthConn(object):
     snh, snh_len = self.__packet_recv()        
     encrypted_data, data_len = self.__packet_recv()
     hmac, hmac_len = self.__packet_recv()
-	secret, secret_len = self.__packet_recv()
+	#secret, secret_len = self.__packet_recv()
     
     data = None # Set data to none initially
     
     # Perform Anti-Replay check
     if snh == self.session_nonce_hash:
       # Autenticate with HMAC
-      calc_hmac = HMAC.new(secret, digestmod=SHA256) # TODO Implement calculation - hash(shared_hash + encrypted_data)
+      calc_hmac = HMAC.new(shared_hash, digestmod=SHA256) # TODO Implement calculation - hash(shared_hash + encrypted_data)
       calc_hmac.update(encrypted_data)
 	  
       if bytes(str(calc_hmac), 'ascii') == hmac:      
