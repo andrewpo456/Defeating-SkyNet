@@ -1,6 +1,7 @@
 import struct
 from Crypto.Hash import SHA256
 from Crypto.Hash import HMAC
+from Crypto import Random
 from Crypto.Random import random
 from Crypto.Cipher import XOR
 from Crypto.Cipher import AES
@@ -8,17 +9,15 @@ from dh import create_dh_key, calculate_dh_secret
 
 class StealthConn(object):
   def __init__(self, conn, client=False, server=False, verbose=True):
-    self.conn = conn
-    self.session_nonce_hash = None # Note this is stored in byte format
-    self.client = client
-    self.server = server
-    self.verbose = verbose
-    self.encryptCipher = None
-    self.decryptCipher = None
-    self.my_private_key = None
-    self.my_public_key = None
-    self.their_public_key = None
-	self.shared_hash = None
+    self.conn               = conn
+    self.client             = client
+    self.server             = server
+    self.verbose            = verbose    
+    # Note that all variables below are stored in byte format
+    self.session_nonce_hash = None
+    self.my_private_key     = None
+    self.their_public_key   = None
+    self.shared_hash        = None
     
     self.initiate_session()
 
@@ -56,7 +55,7 @@ class StealthConn(object):
       snonce = bytes(str(random.randint(1, 2**4096)), "ascii")
       self.__packet_send(snonce)
       
-      # Recieve the session_nonce_hash from the client and decode
+      # Recieve the session_nonce_hash from the client
       self.session_nonce_hash, pkt_len = self.__packet_recv()
       self.__print_verbose("Shared session nonce (server): {0}".format(self.session_nonce_hash))
       
@@ -67,7 +66,7 @@ class StealthConn(object):
       snonce, pkt_len = self.__packet_recv()
 
       # Calculate the session nonces with shared secret hash
-      calculated_nonce = snonce + cnonce + str.encode(shared_hash)
+      calculated_nonce = snonce + cnonce + shared_hash
       self.session_nonce_hash = str.encode(SHA256.new(bytes(calculated_nonce)).hexdigest())
       
       # Encode the string to bytes for transmission and send
@@ -81,89 +80,107 @@ class StealthConn(object):
     # Perform the initial connection handshake for agreeing on a shared secret
     # This can be broken into code run just on the server or just on the client
     if self.server or self.client:
-      self.my_public_key, self.my_private_key = create_dh_key()
+      my_public_key, self.my_private_key = create_dh_key()
 
       # Send them our public key
-      self.__packet_send(bytes(str(self.my_public_key), "ascii"))
+      self.__packet_send(bytes(str(my_public_key), "ascii"))
 
       # Receive their public key - Used in Cipher as encryption key
       pubKey, key_len = self.__packet_recv()
       self.their_public_key = int(pubKey)
 
       # Obtain our shared secret
-      shared_hash = calculate_dh_secret(self.their_public_key, self.my_private_key)
-      print("Shared hash: {}".format(shared_hash))
+      self.shared_hash = calculate_dh_secret(self.their_public_key, self.my_private_key)
+      self.shared_hash = bytes(self.shared_hash, "ascii")
+      print("Shared hash: {}".format(self.shared_hash))
        
-      self.__sync_session_nonces(shared_hash)
+      self.__sync_session_nonces(self.shared_hash)
 
-	#get IV value for creating ciphers
-	iv = Crypto.Random.OSRNG.posix.new().read(AES.block_size)
+      # Initialize the encrypt and decrypt Ciphers
+      iv = Random.OSRNG.posix.new().read(AES.block_size) #TODO: Generate on the fly
+        	
+      # Default XOR algorithm can only take a key of length 32  
+      ## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
+      ## XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
 	
-	#iv = int(hexlify(Random.new().read(AES.block_size)), 16)
-	#iv_encrypt_counter = Counter.new(128, initial_value=ctr_iv)
-	#iv_decrypt_counter = Counter.new(128, initial_value=ctr_iv)
-	#self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv_encrypt_counter)
-	#self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv_decrypt_counter)
-      	
-    # Default XOR algorithm can only take a key of length 32  
-	## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
-    ## XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
-	
-	#Implement AES cipher
-    self.encryptCipher = AES.new(their_public_key, AES.MODE_OFB, iv)
-    self.decryptCipher = AES.new(my_private_key, AES.MODE_OFB, iv) 
+      #Implement AES cipher - TODO: TEST CODE
+      bTheir_pub = bytes(str(self.their_public_key), "ascii")
+      bMy_priv = bytes(str(self.my_private_key), "ascii")
+      
+      self.encryptCipher = AES.new(bTheir_pub.ljust(32)[:32], AES.MODE_OFB, iv)
+      self.decryptCipher = AES.new(bMy_priv.ljust(32)[:32], AES.MODE_OFB, iv) 
 
   def send(self, data):
     """
     Encrypt and send data over the network.
     """
-    if self.encryptCipher:
-      encrypted_data = self.encryptCipher.encrypt(data)
-
-      self.__print_verbose("Original data: {}".format(data))
-      self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
-      self.__print_verbose("Sending packet of length {}".format(len(encrypted_data)))
-    else:
-      # If the cipher has not been created, just send the plaintext data (BAD)
-      encrypted_data = data
-	
-	hmac = HMAC.new(shared_hash, digestmod=SHA256)
-	hmac.update(encrypted_data)
-    #TODO: Remember to send HMAC too AND IV
-	 
-    self.__packet_send(self.session_nonce_hash)  # Send the session nonce (for Anti-Replay attacks)
-    self.__packet_send(encrypted_data)           # Send the encrypted data
-    self.__packet_send(bytes(str(hmac), "ascii"))   # TODO: Replace with HMAC
+    # Initialise the encrypt Cipher
+    iv = Random.OSRNG.posix.new().read(AES.block_size)
+    bTheir_pub = bytes(str(self.their_public_key), "ascii")
+    cipher = AES.new(bTheir_pub.ljust(32)[:32], AES.MODE_OFB, iv)
+    
+    # Record the original len of the data, and pad message out
+    # to a multiple of 16 for transmission.
+    self.__print_verbose("Original data: {}".format(data))
+    data_size = len(data)
+    if len(data) % 16 != 0:
+      data += b' ' * (16 - len(data) % 16)
+      
+    
+    # Encrypt the data
+    encrypted_data = cipher.encrypt(data)
+    self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
+    self.__print_verbose("Sending packet of length {}".format(len(encrypted_data)))
+    
+	  # Create the HMAC
+    hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
+    hmac.update(encrypted_data)
+    
+    # Encode information so its in byte format
+    hmac = bytes(str(hmac.hexdigest()), "ascii")
+    data_size = bytes(str(data_size), "ascii")
+    
+    # Send the encrypted data with relevant information
+    self.__packet_send(self.session_nonce_hash) # Send the session nonce (for Anti-Replay attacks)
+    self.__packet_send(iv)                      # Send the iv (to create the decrypt cipher)
+    self.__packet_send(data_size)               # Send the length of the data
+    self.__packet_send(encrypted_data)          # Send the encrypted data
+    self.__packet_send(hmac)                    # Send the hmac
 	  
 	
   def recv(self):
     """
     Recieve and decrypt data from the network.
     """
-    # Recieve the encrypted data with session nonce and HMAC
-    snh, snh_len = self.__packet_recv()        
-    encrypted_data, data_len = self.__packet_recv()
-    hmac, hmac_len = self.__packet_recv()
-	#secret, secret_len = self.__packet_recv()
+    # Recieve the encrypted data with relevant information
+    snh, pkt_len                = self.__packet_recv() # The session nonce hash
+    iv, pkt_len                 = self.__packet_recv() # The iv used in encryption
+    origdata_len, pkt_len       = self.__packet_recv() # The size of the original data
+    encrypted_data, encrypt_len = self.__packet_recv() # The encrypted data
+    hmac, pkt_len               = self.__packet_recv() # The hashed Message Authentication Code
     
-    data = None # Set data to none initially
+    # Initialize decrypt cipher
+    bMy_priv = bytes(str(self.my_private_key), "ascii")
+    cipher = AES.new(bMy_priv.ljust(32)[:32], AES.MODE_OFB, iv)
+    
+    # Calculate hmac
+    calc_hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
+    calc_hmac.update(encrypted_data)
+    calc_hmac = bytes(str(calc_hmac.hexdigest()), "ascii")
+    
+    data = None
     
     # Perform Anti-Replay check
     if snh == self.session_nonce_hash:
       # Autenticate with HMAC
-      calc_hmac = HMAC.new(shared_hash, digestmod=SHA256) # TODO Implement calculation - hash(shared_hash + encrypted_data)
-      calc_hmac.update(encrypted_data)
-	  
-      if bytes(str(calc_hmac), 'ascii') == hmac:      
+      if calc_hmac == hmac:      
         # Decrypt data
-        if self.decryptCipher:
-          data = self.decryptCipher.decrypt(encrypted_data)
+        data = cipher.decrypt(encrypted_data)
+        data = data.ljust(int(origdata_len))[:int(origdata_len)]
 
-          self.__print_verbose("Receiving packet of length {}".format(data_len))
-          self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
-          self.__print_verbose("Original data: {}".format(data))    
-        else:
-          data = encrypted_data
+        self.__print_verbose("Receiving packet of length {}".format(encrypt_len))
+        self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
+        self.__print_verbose("Original data: {}".format(data))    
       else:
         self.__print_verbose("Autentication Failed!")
         self.close()
