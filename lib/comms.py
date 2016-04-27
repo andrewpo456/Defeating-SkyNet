@@ -58,16 +58,15 @@ class StealthConn(object):
       # Recieve the session_nonce_hash from the client
       self.session_nonce_hash, pkt_len = self.__packet_recv()
       self.__print_verbose("Shared session nonce (server): {0}".format(self.session_nonce_hash))
-      
-      
+       
     if self.client:
       # Generate the pseudorandom client nonce and recieve the server nonce
-      cnonce = bytes(str(random.randint(1, 2**4096)), "ascii") # The client nonce is kept secret and thrown away afterwards
+      cnonce = bytes(str(random.randint(1, 2**4096)), "ascii")
       snonce, pkt_len = self.__packet_recv()
 
       # Calculate the session nonces with shared secret hash
       calculated_nonce = snonce + cnonce + shared_hash
-      self.session_nonce_hash = str.encode(SHA256.new(bytes(calculated_nonce)).hexdigest())
+      self.session_nonce_hash = bytes(SHA256.new(bytes(calculated_nonce)).hexdigest(), "ascii")
       
       # Encode the string to bytes for transmission and send
       self.__packet_send(self.session_nonce_hash)
@@ -78,46 +77,34 @@ class StealthConn(object):
     Initiates session between client and server bots.
     """
     # Perform the initial connection handshake for agreeing on a shared secret
-    # This can be broken into code run just on the server or just on the client
     if self.server or self.client:
+      # Calculate diffie-Hellman key pair and send our public key
       my_public_key, self.my_private_key = create_dh_key()
-
-      # Send them our public key
       self.__packet_send(bytes(str(my_public_key), "ascii"))
 
       # Receive their public key - Used in Cipher as encryption key
       pubKey, key_len = self.__packet_recv()
       self.their_public_key = int(pubKey)
 
-      # Obtain our shared secret
+      # Obtain the shared secret
       self.shared_hash = calculate_dh_secret(self.their_public_key, self.my_private_key)
-      self.shared_hash = bytes(self.shared_hash, "ascii")
-      print("Shared hash: {}".format(self.shared_hash))
-       
-      self.__sync_session_nonces(self.shared_hash)
-
-      # Initialize the encrypt and decrypt Ciphers
-      iv = Random.OSRNG.posix.new().read(AES.block_size) #TODO: Generate on the fly
-        	
-      # Default XOR algorithm can only take a key of length 32  
-      ## XOR.new(shared_hash[:4]) # cipher = AES.new(their_public_key, AES.MODE_OFB, iv)
-      ## XOR.new(shared_hash[:4]) # cipher = AES.new(our_private_key, AES.MODE_OFB, iv)
-	
-      #Implement AES cipher - TODO: TEST CODE
-      bTheir_pub = bytes(str(self.their_public_key), "ascii")
-      bMy_priv = bytes(str(self.my_private_key), "ascii")
+      self.shared_hash = bytes(self.shared_hash, "ascii")        	
       
-      self.encryptCipher = AES.new(bTheir_pub.ljust(32)[:32], AES.MODE_OFB, iv)
-      self.decryptCipher = AES.new(bMy_priv.ljust(32)[:32], AES.MODE_OFB, iv) 
-
+      # Convert the keys to byte format and truncate to a size of 32 (16 ,24 and 32 bit keys
+      # allowed only in AES encryption cipher)
+      self.their_public_key = bytes(str(self.their_public_key), "ascii").ljust(32)[:32]
+      self.my_private_key   = bytes(str(self.my_private_key), "ascii").ljust(32)[:32]
+      
+      # Perform synch of session nonces as Anti-Replay Mechanism
+      self.__sync_session_nonces(self.shared_hash)
+	
   def send(self, data):
     """
     Encrypt and send data over the network.
     """
-    # Initialise the encrypt Cipher
+    # Initialise the encrypt Cipher (a new IV will be generated for each encyrption)
     iv = Random.OSRNG.posix.new().read(AES.block_size)
-    bTheir_pub = bytes(str(self.their_public_key), "ascii")
-    cipher = AES.new(bTheir_pub.ljust(32)[:32], AES.MODE_OFB, iv)
+    cipher = AES.new(self.their_public_key, AES.MODE_OFB, iv)
     
     # Record the original len of the data, and pad message out
     # to a multiple of 16 for transmission.
@@ -126,11 +113,10 @@ class StealthConn(object):
     if len(data) % 16 != 0:
       data += b' ' * (16 - len(data) % 16)
       
-    
     # Encrypt the data
     encrypted_data = cipher.encrypt(data)
-    self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
     self.__print_verbose("Sending packet of length {}".format(len(encrypted_data)))
+    self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
     
 	  # Create the HMAC
     hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
@@ -160,8 +146,7 @@ class StealthConn(object):
     hmac, pkt_len               = self.__packet_recv() # The hashed Message Authentication Code
     
     # Initialize decrypt cipher
-    bMy_priv = bytes(str(self.my_private_key), "ascii")
-    cipher = AES.new(bMy_priv.ljust(32)[:32], AES.MODE_OFB, iv)
+    cipher = AES.new(self.my_private_key, AES.MODE_OFB, iv)
     
     # Calculate hmac
     calc_hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
