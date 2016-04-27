@@ -3,7 +3,6 @@ from Crypto.Hash import SHA256
 from Crypto.Hash import HMAC
 from Crypto import Random
 from Crypto.Random import random
-from Crypto.Cipher import XOR
 from Crypto.Cipher import AES
 from dh import create_dh_key, calculate_dh_secret
 
@@ -57,7 +56,6 @@ class StealthConn(object):
       
       # Recieve the session_nonce_hash from the client
       self.session_nonce_hash, pkt_len = self.__packet_recv()
-      self.__print_verbose("Shared session nonce (server): {0}".format(self.session_nonce_hash))
        
     if self.client:
       # Generate the pseudorandom client nonce and recieve the server nonce
@@ -70,7 +68,6 @@ class StealthConn(object):
       
       # Encode the string to bytes for transmission and send
       self.__packet_send(self.session_nonce_hash)
-      self.__print_verbose("Shared session nonce (client): {0}".format(self.session_nonce_hash))
     
   def initiate_session(self):
     """
@@ -118,7 +115,7 @@ class StealthConn(object):
     self.__print_verbose("Sending packet of length {}".format(len(encrypted_data)))
     self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
     
-	  # Create the HMAC
+    # Create the HMAC
     hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
     hmac.update(encrypted_data)
     
