@@ -54,8 +54,15 @@ class StealthConn(object):
       snonce = bytes(str(random.randint(1, 2**4096)), "ascii")
       self.__packet_send(snonce)
       
-      # Recieve the session_nonce_hash from the client
-      self.session_nonce_hash, pkt_len = self.__packet_recv()
+      # Recieve the session_nonce_hash and cnonce from the client, recalculate snh and compare
+      snh, pkt_len    = self.__packet_recv()
+      cnonce, pkt_len = self.__packet_recv()
+      
+      calc_nonce              = snonce + cnonce + shared_hash
+      self.session_nonce_hash = bytes(SHA256.new(bytes(calc_nonce)).hexdigest(), "ascii")
+      
+      if self.session_nonce_hash != snh:
+        self.close() # Dubious activity detected - shutdown the connection
        
     if self.client:
       # Generate the pseudorandom client nonce and recieve the server nonce
@@ -68,6 +75,7 @@ class StealthConn(object):
       
       # Encode the string to bytes for transmission and send
       self.__packet_send(self.session_nonce_hash)
+      self.__packet_send(cnonce)
     
   def initiate_session(self):
     """
