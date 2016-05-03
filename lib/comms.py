@@ -73,47 +73,48 @@ class StealthConn(object):
     """
     Encrypt and send data over the network.
     """
+    self.__print_verbose("Original data: {}".format(data))
+    
     # Initialise the encrypt Cipher (a new IV will be generated for each encyrption)
     iv = Random.get_random_bytes(AES.block_size)
     cipher = AES.new(self.their_public_key, AES.MODE_OFB, iv)
     
-    # Record the original len of the data, and pad message out
-    # to a multiple of 16 for transmission.
-    self.__print_verbose("Original data: {}".format(data))
-    data = ANSI_X923_pad(data, cipher.block_size)
-      
-    # Encrypt the data
-    encrypted_data = cipher.encrypt(data)
+    # Create the HMAC = hash( shared_secret + session_counter + plaintext)
+    # and convert to bytes
+    hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
+    hmac.update(bytes(str(self.session_counter), "ascii"))
+    hmac.update(data)
+    hmac = bytes(str(hmac), "ascii")
+    
+    # Construct the message = session_counter + data + HMAC 
+    ctr_str = bytes(str(self.session_counter), "ascii")
+    ctr_str = ANSI_X923_pad(ctr_str, 7) # The data is padded to 7 bytes as this is what reciever expects
+    message = ctr_str + data + hmac
+    
+    # Encrypt the message
+    message = ANSI_X923_pad(message, cipher.block_size) # TODO: Determine if need to pad in OFB is bug or not
+    encrypted_data = cipher.encrypt(message)
     self.__print_verbose("Sending packet of length {}".format(len(encrypted_data)))
     self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
     
-    # Create the HMAC
-    hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
-    hmac.update(encrypted_data)
-    
-    # Encode information so its in byte format
-    hmac    = bytes(str(hmac.hexdigest()), "ascii")
-    counter = bytes(str(self.session_counter), "ascii") 
+    # Append the iv
+    message_to_send = iv + encrypted_data
     
     # Send the encrypted data with relevant information
-    self.__packet_send(counter)                 # Send the session counter (for Anti-Replay attacks)
-    self.__packet_send(iv)                      # Send the iv (to create the decrypt cipher)
-    self.__packet_send(encrypted_data)          # Send the encrypted data
-    self.__packet_send(hmac)                    # Send the hmac
+    self.__packet_send(message_to_send) # Send the encrypted data
     
     # Increment the session counter, so that the next message will have a new 'unique' identifier
     self.session_counter += 1
-	  
 	
   def recv(self):
     """
     Recieve and decrypt data from the network.
     """
-    # Recieve the encrypted data with relevant information
-    counter, pkt_len            = self.__packet_recv() # The session nonce hash
-    iv, pkt_len                 = self.__packet_recv() # The iv used in encryption
-    encrypted_data, encrypt_len = self.__packet_recv() # The encrypted data
-    hmac, pkt_len               = self.__packet_recv() # The hashed Message Authentication Code
+    # Recieve the message
+    message, encrypt_len = self.__packet_recv() # The encrypted data
+    
+    iv = message[:16]
+    encrypted_data = message[16:]
     
     # Initialize decrypt cipher
     cipher = AES.new(self.my_private_key, AES.MODE_OFB, iv)
