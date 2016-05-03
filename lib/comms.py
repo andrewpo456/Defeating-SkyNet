@@ -4,6 +4,7 @@ from Crypto.Hash import HMAC
 from Crypto import Random
 from Crypto.Random import random
 from Crypto.Cipher import AES
+from lib.helpers import ANSI_X923_pad, ANSI_X923_unpad
 from dh import create_dh_key, calculate_dh_secret
 
 class StealthConn(object):
@@ -114,9 +115,7 @@ class StealthConn(object):
     # Record the original len of the data, and pad message out
     # to a multiple of 16 for transmission.
     self.__print_verbose("Original data: {}".format(data))
-    data_size = len(data)
-    if len(data) % 16 != 0:
-      data += b' ' * (16 - len(data) % 16)
+    data = ANSI_X923_pad(data, cipher.block_size)
       
     # Encrypt the data
     encrypted_data = cipher.encrypt(data)
@@ -129,12 +128,10 @@ class StealthConn(object):
     
     # Encode information so its in byte format
     hmac = bytes(str(hmac.hexdigest()), "ascii")
-    data_size = bytes(str(data_size), "ascii")
     
     # Send the encrypted data with relevant information
     self.__packet_send(self.session_nonce_hash) # Send the session nonce (for Anti-Replay attacks)
     self.__packet_send(iv)                      # Send the iv (to create the decrypt cipher)
-    self.__packet_send(data_size)               # Send the length of the data
     self.__packet_send(encrypted_data)          # Send the encrypted data
     self.__packet_send(hmac)                    # Send the hmac
 	  
@@ -146,7 +143,6 @@ class StealthConn(object):
     # Recieve the encrypted data with relevant information
     snh, pkt_len                = self.__packet_recv() # The session nonce hash
     iv, pkt_len                 = self.__packet_recv() # The iv used in encryption
-    origdata_len, pkt_len       = self.__packet_recv() # The size of the original data
     encrypted_data, encrypt_len = self.__packet_recv() # The encrypted data
     hmac, pkt_len               = self.__packet_recv() # The hashed Message Authentication Code
     
@@ -166,7 +162,7 @@ class StealthConn(object):
       if calc_hmac == hmac:      
         # Decrypt data
         data = cipher.decrypt(encrypted_data)
-        data = data.ljust(int(origdata_len))[:int(origdata_len)]
+        data = ANSI_X923_unpad(data, cipher.block_size)
 
         self.__print_verbose("Receiving packet of length {}".format(encrypt_len))
         self.__print_verbose("Encrypted data: {}".format(repr(encrypted_data)))
