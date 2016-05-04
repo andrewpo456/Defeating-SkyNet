@@ -13,7 +13,7 @@ class StealthConn(object):
     self.client             = client
     self.server             = server
     self.verbose            = verbose
-    self.session_counter    = 0
+    self.session_counter    = None
         
     # Note that all variables below are stored in byte format
     self.my_private_key     = None
@@ -73,6 +73,10 @@ class StealthConn(object):
       # Convert the keys to byte format and truncate to 16 bytes (required key size for 128-bit AES)
       self.their_public_key = bytes(str(self.their_public_key), "ascii")[:16]
       self.my_private_key   = bytes(str(self.my_private_key), "ascii")[:16]
+      
+      # Start the counter from the value of byte 17 in the shared_hash
+      self.session_counter = int(self.shared_hash[17])
+      print(self.session_counter)
 	
   def send(self, data):
     """
