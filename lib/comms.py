@@ -74,10 +74,9 @@ class StealthConn(object):
       self.their_public_key = bytes(str(self.their_public_key), "ascii")[:16]
       self.my_private_key   = bytes(str(self.my_private_key), "ascii")[:16]
       
-      # Start the counter from the value of byte 17 in the shared_hash
+      # Start the counter from the value of bytes 17 in the shared_hash
       self.session_counter = int(self.shared_hash[17])
-      print(self.session_counter)
-	
+
   def send(self, data):
     """
     Encrypt and send data over the network.
