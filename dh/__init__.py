@@ -1,7 +1,6 @@
 from Crypto.Hash import SHA256
 from Crypto.Random import random
 from fractions import gcd
-
 from lib.helpers import read_hex
 
 # 4096-bit safe prime for Diffie-Hellman key exchange
@@ -34,25 +33,22 @@ prime = read_hex(raw_prime)
 generator = 2
 
 def create_dh_key():    
-    # Returns a Diffie-Hellman public(e), private(d) key pair
+    # Returns a Diffie-Hellman public(A), private(a) key pair
     phi_n = prime - 1    
     
     # Select a random integer e so that it satisfies:
-    #   (a) 1 < e < phi_n
-    #   (b) gcd(e, phi_n) == 1 (i.e. e and phi_n are coprime) 
+    #   (a) 2**480 < e < phi_n - Note 2**480 came from the RFC 3526 min required
+    #       exponent size for 4096-bit numbers
     # Note: randint(a, b) returns a random integer N such that a <= N <= b     
-    while True:
-      e = random.randint(2, phi_n - 1)
-      if (gcd(e, phi_n) == 1):
-        break   
+    a = random.randint(2**480, phi_n - 1)
 
-    # Calculate the private key - e**(phi_n-1) mod phi_n
-    d = pow(e, phi_n - 1, phi_n)
-    return (e, d)
+    # Calculate the public key - g**(a) mod prime
+    A = pow(generator, a, prime)
+    return (A, a)
 
 def calculate_dh_secret(their_public, my_private):
     # Calculate the shared secret:    
-    shared_secret = pow(generator, their_public * my_private, prime)
+    shared_secret = pow(their_public, my_private, prime)
 
     # Hash the value so that:
     # (a) There's no bias in the bits of the output
