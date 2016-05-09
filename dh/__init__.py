@@ -37,9 +37,10 @@ def create_dh_key():
     phi_n = prime - 1    
     
     # Select a random integer e so that it satisfies:
-    #   (a) 2**480 < e < phi_n - Note 2**480 came from the RFC 3526 min required
-    #       exponent size for 4096-bit numbers
-    # Note: randint(a, b) returns a random integer N such that a <= N <= b     
+    #   - 2**480 < e < phi_n
+    #   
+    #   * Note 2**480 came from the RFC 3526 min required exponent size for 4096-bit numbers
+    #   * Note: randint(a, b) returns a random integer N such that a <= N <= b     
     a = random.randint(2**480, phi_n - 1)
 
     # Calculate the public key - g**(a) mod prime
@@ -48,12 +49,21 @@ def create_dh_key():
 
 def calculate_dh_secret(their_public, my_private):
     # Calculate the shared secret:    
-    shared_secret = pow(their_public, my_private, prime)
-
-    # Hash the value so that:
-    # (a) There's no bias in the bits of the output
-    #     (there may be bias if the shared secret is used raw)
-    # (b) We can convert to raw bytes easily
-    # (c) We could add additional information if we wanted
-    shared_hash = SHA256.new(bytes(str(shared_secret), "ascii")).hexdigest()
-    return shared_hash
+    ZZ = pow(their_public, my_private, prime)
+    
+    # According to RFC 2631 - The above equation is simply not enough
+    # to generate keying material.
+    # The method must follow:
+    #   - KM = H ( ZZ || OtherInfo )
+    # For more information please refer to the relevant sections in RFC 2631.
+    
+    # OtherInfo
+    counter     = bytes(str(1), "ascii")
+    suppPubInfo = bytes(str(256), "ascii")
+    
+    # Only ONE KM round is required as SHA256 produces the required amount of
+    # bits for 128-bit AES cipher, plus other communication primitives.
+    to_hash = bytes(str(ZZ),"ascii") + counter + suppPubInfo
+    KEK     = SHA256.new(to_hash).hexdigest()
+    
+    return KEK
