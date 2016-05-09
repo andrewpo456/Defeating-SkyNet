@@ -7,6 +7,12 @@ from Crypto.Cipher import AES
 from lib.helpers import ANSI_X923_pad, ANSI_X923_unpad
 from dh import create_dh_key, calculate_dh_secret
 
+# ~ Global variables ~
+# We are using SHA256, thefore each HMAC is 64 bytes long (Hexadecimal string format) 
+HMAC_LEN    = 64
+ # We declare that the counter is sent as a 7 byte number max counter value is therefore '1000000'
+COUNTER_LEN = 7
+
 class StealthConn(object):
   def __init__(self, conn, client=False, server=False, verbose=True):
     self.conn               = conn
@@ -14,17 +20,9 @@ class StealthConn(object):
     self.server             = server
     self.verbose            = verbose
     self.session_counter    = None
+    self.DEK                = None  # Stored in byte format
+    self.signing_secret     = None  # Stored in byte format
         
-    # Note that all variables below are stored in byte format
-    self.my_private_key     = None
-    self.their_public_key   = None
-    self.shared_hash        = None
-    
-    # These are class constants must not be changed
-    self.HMAC_LEN          = 64 # We are using SHA256, thefore each HMAC is 64 bytes long
-    self.COUNTER_LEN       = 7  # We declare that the counter is sent as a 7 byte number max
-                                # counter value is therefore '1000000'
-    
     self.initiate_session()
 
   def __print_verbose(self, string):
@@ -49,8 +47,6 @@ class StealthConn(object):
     pkt_len = struct.unpack('H', pkt_len_packed)[0]
     
     return self.conn.recv(pkt_len), pkt_len
-
-
     
   def initiate_session(self):
     """
@@ -58,48 +54,51 @@ class StealthConn(object):
     """
     # Perform the initial connection handshake for agreeing on a shared secret
     if self.server or self.client:
+      
       # Calculate diffie-Hellman key pair and send our public key
-      my_public_key, self.my_private_key = create_dh_key()
+      my_public_key, my_private_key = create_dh_key()
       self.__packet_send(bytes(str(my_public_key), "ascii"))
 
-      # Receive their public key - Used in Cipher as encryption key
+      # Receive their public key
       pubKey, key_len = self.__packet_recv()
-      self.their_public_key = int(pubKey)
+      their_public_key = int(pubKey)
 
       # Obtain a shared secret
-      self.shared_hash = calculate_dh_secret(self.their_public_key, self.my_private_key)
-      self.shared_hash = bytes(self.shared_hash, "ascii")        	
+      shared_hash = calculate_dh_secret(their_public_key, my_private_key)
+      shared_hash = bytes(shared_hash, "ascii")
       
-      # Convert the keys to byte format and truncate to 16 bytes (required key size for 128-bit AES)
-      self.their_public_key = bytes(str(self.their_public_key), "ascii")[:16]
-      self.my_private_key   = bytes(str(self.my_private_key), "ascii")[:16]
-      
-      # Start the counter from the value of bytes 17 in the shared_hash
-      self.session_counter = int(self.shared_hash[17])
+      # Derive the following from the shared secret
+      #   (a) Symmetric (16 byte) DEK (Data Encryption Key)
+      #   (b) Initial session counter value
+      #   (c) Secret used in the signing of messages (HMAC)
+      self.DEK             = shared_hash[:16]
+      self.session_counter = int(shared_hash[17])
+      self.signing_secret  = shared_hash[17:]  
 
   def send(self, data):
     """
     Encrypt and send data over the network.
     """
-    self.__print_verbose("Original data: {}".format(data))
-    # Initialise the encrypt Cipher (a new IV will be generated for each encyrption)
-    iv      = Random.get_random_bytes(AES.block_size)
-    cipher  = AES.new(self.their_public_key, AES.MODE_OFB, iv)
+    # Create the Cipher with the new IV
+    iv     = Random.get_random_bytes(AES.block_size)
+    cipher = AES.new(self.DEK, AES.MODE_OFB, iv)
     
-    # Create the HMAC = hash( shared_secret + session_counter + plaintext)
-    hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
+    # Create the HMAC = hash( signing_secret + session_counter + plaintext)
+    hmac = HMAC.new(self.signing_secret, digestmod=SHA256)
     hmac.update(bytes(str(self.session_counter), "ascii"))
     hmac.update(data)
     
     # Construct the data to encrypt = session_counter +  HMAC + data 
     hmac            = bytes(str(hmac.hexdigest()), "ascii")
     ctr_str         = bytes(str(self.session_counter), "ascii")
-    ctr_str         = ANSI_X923_pad(ctr_str, self.COUNTER_LEN)
+    ctr_str         = ANSI_X923_pad(ctr_str, COUNTER_LEN)
     data_to_encrypt = ctr_str + hmac + data 
     
     # Encrypt the message
     data_to_encrypt = ANSI_X923_pad(data_to_encrypt, cipher.block_size)
     encrypted_data  = cipher.encrypt(data_to_encrypt)
+    
+    self.__print_verbose("Original data: {}".format(data))
     self.__print_verbose("Encrypted Data: {}".format(repr(encrypted_data)))
     
     # Append the iv to create the packet
@@ -117,26 +116,24 @@ class StealthConn(object):
     Recieve and decrypt data from the network.
     """
     # Recieve the paket
-    packet, pkt_len = self.__packet_recv() # The encrypted data
-    self.__print_verbose("Receiving packet of length {}".format(pkt_len))
+    packet, pkt_len = self.__packet_recv()
     
     # Split the packet into iv and encrypted data
-    iv = packet[:AES.block_size]
+    iv             = packet[:AES.block_size]
     encrypted_data = packet[AES.block_size:]
-    self.__print_verbose("Encrypted Data: {}".format(repr(encrypted_data)))
     
     # Initialize decrypt cipher and decrypt data
-    cipher  = AES.new(self.my_private_key, AES.MODE_OFB, iv)
+    cipher  = AES.new(self.DEK, AES.MODE_OFB, iv)
     message = cipher.decrypt(encrypted_data)
-    
+    message = ANSI_X923_unpad(message, cipher.block_size)
+        
     # Split the data into counter, HMAC and plaintext
-    message      = ANSI_X923_unpad(message, cipher.block_size) 
-    recv_counter = ANSI_X923_unpad(message[:self.COUNTER_LEN], self.COUNTER_LEN)      
-    recv_hmac    = message[self.COUNTER_LEN:(self.COUNTER_LEN + self.HMAC_LEN)]                       
-    plaintext    = message[(self.COUNTER_LEN + self.HMAC_LEN):]
+    recv_counter = ANSI_X923_unpad(message[:COUNTER_LEN], COUNTER_LEN)      
+    recv_hmac    = message[COUNTER_LEN:(COUNTER_LEN + HMAC_LEN)]                       
+    plaintext    = message[(COUNTER_LEN + HMAC_LEN):]
     
     # Calculate our own hmac to verify integrity
-    calc_hmac = HMAC.new(self.shared_hash, digestmod=SHA256)
+    calc_hmac = HMAC.new(self.signing_secret, digestmod=SHA256)
     calc_hmac.update(recv_counter)
     calc_hmac.update(plaintext)
     
@@ -149,11 +146,11 @@ class StealthConn(object):
       # Autenticate with HMAC
       if calc_hmac == recv_hmac:              
         data = plaintext
+        self.__print_verbose("Receiving packet of length {}".format(pkt_len))
+        self.__print_verbose("Encrypted Data: {}".format(repr(encrypted_data)))
         self.__print_verbose("Original data: {}".format(data))         
 
-        # Increment session counter, to keep lock-step
-        # with the other bot
-        self.session_counter += 1          
+        self.session_counter += 1 # Increment session counter, to keep lock-step with the other bot       
       else:
         data = None
         self.__print_verbose("Integrity Check Failed!")
