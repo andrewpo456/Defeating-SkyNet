@@ -142,14 +142,8 @@ Enter command: exit <br />
 
 TODO:
 -------------------
-+ Add code to dh/__init__.py
-   1. What choice of parameters are you deciding on for DH?
-   2. What's the proper way to calculate the private, public and shared keys?
-+ Modify the way ciphers are used in lib/comms.py
-   1. What's your choice of cypher? Why did you select it?
-   2. Are your messages vulnerable to tampering, replay or frequency analysis?
-
-Notice: 'Test' and 'exit' are sent and received as the same encrypted message.
-This means it's vulnerable to frequency analysis. When 'a' is sent multiple times,
-it ends up "looping" as we're using a simple repeated XOR cypher.
-This is something that should be fixed.
++ Enable Signing and verification for any botnet updates
+   1. Signing code in master_sign.py
+   2. Verification code in the verify_file function in lib/files.py 
++ Ensure upload_valuables_to_pastebot securely encrypts data so it's only accessible to botnet master
+   1. Need to modify master_view.py to allow the file to be decrypted by the botnet master
