@@ -100,6 +100,46 @@ Encrypted data: b'\x01JQA' <br />
 Original data: b'exit' <br />
 Enter command: exit <br />
 
+Usage -- uploading and viewing secrets
+======================================
+smerity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 bot.py <br />
+Listening on port 1337 <br />
+Waiting for connection... <br />
+Enter command: mine <br />
+Mining for Bitcoins... <br />
+-
+Mined and found Bitcoin address: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l <br />
+Enter command: mine <br />
+Mining for Bitcoins... <br />
+-
+Mined and found Bitcoin address: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 <br />
+Enter command: upload secrets <br />
+Saved valuables to pastebot.net/secrets for the botnet master <br />
+Enter command: exit <br />
+smerity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 master_view.py <br />
+Which file in pastebot.net does the botnet master want to view? secrets <br />
+Bitcoin: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l <br />
+Bitcoin: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 <br />
+
+Usage -- signing updates and downloading updates
+================================================
+merity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 master_sign.py <br />
+Which file in pastebot.net should be signed? hello.fbi <br />
+Signed file written to pastebot.net/hello.fbi.signed <br />
+smerity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 bot.py <br />
+Listening on port 1337 <br />
+Waiting for connection... <br />
+Enter command: download hello.fbi <br />
+The file has not been signed by the botnet master <br />
+Enter command: download hello.fbi.signed <br />
+Stored the received file as hello.fbi.signed <br />
+Enter command: list <br />
+Files stored by this bot: hello.fbi.signed <br />
+Valuables stored by this bot: [] <br />
+Enter command: exit <br />
+
+
+
 TODO:
 -------------------
 + Add code to dh/__init__.py
