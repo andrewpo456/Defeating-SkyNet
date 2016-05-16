@@ -1,12 +1,16 @@
 import os
-
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
 
 def decrypt_valuables(f):
   # TODO: For Part 2, you'll need to decrypt the contents of this file
-  # The existing scheme uploads in plaintext
-  # As such, we just convert it back to ASCII and print it out
-  decoded_text = str(f, 'ascii')
-  print(decoded_text)
+  #   - At the moment this system depends upon the size of the text to
+  #     decode to be smaller than the pubKey size. This is a bad implementation.
+  key = RSA.importKey(open('privkey.der', 'rb').read())
+  cipher = PKCS1_OAEP.new(key)
+  message = cipher.decrypt(f)
+  
+  print(message)
 
 
 if __name__ == "__main__":

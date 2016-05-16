@@ -1,11 +1,34 @@
 import os
+from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
+from Crypto.Signature import PKCS1_v1_5
 
+def sign_file(f):  
+  #TODO: 
+  # - Determine acceptable key size (performance vs security)
+  # - Determine whether or not the DER vs PEM (if we need to encrypt key with passphrase
+  #   then it must be PEM.
+  # - Determine if the ability to read old files after session ends is needed?
+  # - Determine correct signature module (i.e. PKCS1_v1_5 vs ...?)
 
-def sign_file(f):
-  # TODO: For Part 2, you'll use public key crypto here
-  # The existing scheme just ensures the updates start with the line 'Caesar'
-  # This is naive -- replace it with something better!
-  return bytes("Caesar\n", "ascii") + f
+  # Generate the private/public key pair using the RSA module
+  key = RSA.generate(4096) 
+  pri_key_file = open('privkey.der', 'wb')
+  pri_key_file.write(key.exportKey('DER'))
+  pri_key_file.close()
+  
+  pub_key = key.publickey()
+  pub_key_file = open('pubKey.der', 'wb')
+  pub_key_file.write(pub_key.exportKey('DER'))
+  pub_key_file.close()
+  
+  # Create the hash that will be signed and pre-pended to message
+  h = SHA256.new(f)
+  signer = PKCS1_v1_5.new(key)
+  signature = signer.sign(h)
+  
+  #return bytes("Caesar\n", "ascii") + f
+  return signature + f
 
 
 if __name__ == "__main__":
