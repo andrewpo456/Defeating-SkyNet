@@ -8,8 +8,9 @@ def sign_file(f):
   # - Determine acceptable key size (performance vs security)
   # - Determine whether or not the DER vs PEM (if we need to encrypt key with passphrase
   #   then it must be PEM.
-  # - Determine if the ability to read old files after session ends is needed?
   # - Determine correct signature module (i.e. PKCS1_v1_5 vs ...?)
+  # - Need a nonce for freshness ***
+  # - Should we harcode the key or re-generate a new one each time the master runs this py file? **** 
 
   # Generate the private/public key pair using the RSA module
   key = RSA.generate(4096) 
@@ -27,7 +28,6 @@ def sign_file(f):
   signer = PKCS1_v1_5.new(key)
   signature = signer.sign(h)
   
-  #return bytes("Caesar\n", "ascii") + f
   return signature + f
 
 
