@@ -4,13 +4,10 @@ from Crypto.Hash import SHA256
 from Crypto.Signature import PKCS1_v1_5
 
 def sign_file(f):  
-  #TODO: 
-  # - Need a nonce for freshness ***
-  
-  # Import the master key that only the botnet master has access to
+  # Import the master (private) RSA keyto sign file
   masterkey = RSA.importKey(open('masterkey.pem', 'rb').read())
   
-  # Create the hash that will be signed and pre-pended to message
+  # Create the hash that will be signed and pre-pended to the  message
   h = SHA256.new(f)
   signer = PKCS1_v1_5.new(masterkey)
   signature = signer.sign(h)

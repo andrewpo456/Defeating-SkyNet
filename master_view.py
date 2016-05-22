@@ -18,10 +18,10 @@ def decrypt_valuables(f):
   encrypted_message = f[(AES.block_size + encrypt_k_len):]
   
   # Unencrypt the symmetric key
-  key = rsa_cipher.decrypt(encrypted_key)
+  symmkey = rsa_cipher.decrypt(encrypted_key)
 
   # Decrypt the message using the found iv and symmetric key
-  cipher  = AES.new(key, AES.MODE_OFB, iv)
+  cipher  = AES.new(symmkey, AES.MODE_OFB, iv)
   message = cipher.decrypt(encrypted_message)
   message = ANSI_X923_unpad(message, cipher.block_size)
   
