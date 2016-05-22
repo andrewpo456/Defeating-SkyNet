@@ -6,11 +6,11 @@ from lib.helpers import ANSI_X923_pad, ANSI_X923_unpad
 
 def decrypt_valuables(f):
   # Import the rsa private key and create the rsa decrypt cipher
-  rsa_key = RSA.importKey(open('privkey.der', 'rb').read())
-  rsa_cipher = PKCS1_OAEP.new(rsa_key)
+  masterkey = RSA.importKey(open('masterkey.pem', 'rb').read())
+  rsa_cipher = PKCS1_OAEP.new(masterkey)
   
   # Calculate the length of the encrypted symmetric key (in bytes)
-  encrypt_k_len = int((rsa_key.size() + 1)/8)
+  encrypt_k_len = int((masterkey.size() + 1)/8)
   
   #Obtain iv, the encrypted symmetric key and the encrypted message
   iv = f[:AES.block_size]

