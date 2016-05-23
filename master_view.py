@@ -9,17 +9,18 @@ def decrypt_valuables(f):
   masterkey = RSA.importKey(open('masterkey.pem', 'rb').read())
   rsa_cipher = PKCS1_OAEP.new(masterkey)
   
-  # Calculate the length of the encrypted symmetric key (in bytes)
-  encrypt_k_len = int((masterkey.size() + 1)/8)
+  # Calculate the length of the encrypted cipher info (in bytes)
+  info_len = int((masterkey.size() + 1)/8)
   
-  #Obtain iv, the encrypted symmetric key and the encrypted message
-  iv = f[:AES.block_size]
-  encrypted_key = f[AES.block_size:(AES.block_size + encrypt_k_len)]
-  encrypted_message = f[(AES.block_size + encrypt_k_len):]
+  # Seperate the encrypted cipher info and message
+  encrypt_cipher_info = f[:info_len]
+  encrypted_message   = f[info_len:]
   
-  # Unencrypt the symmetric key
-  symmkey = rsa_cipher.decrypt(encrypted_key)
-
+  # Decrypt iv and the symmetric key
+  info    = rsa_cipher.decrypt(encrypt_cipher_info)
+  iv      = info[:AES.block_size]
+  symmkey = info[AES.block_size:(AES.block_size*2)]
+  
   # Decrypt the message using the found iv and symmetric key
   cipher  = AES.new(symmkey, AES.MODE_OFB, iv)
   message = cipher.decrypt(encrypted_message)

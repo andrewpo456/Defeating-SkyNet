@@ -4,10 +4,10 @@ from Crypto.Hash import SHA256
 from Crypto.Signature import PKCS1_v1_5
 
 def sign_file(f):  
-  # Import the master (private) RSA keyto sign file
+  # Import the master (private) RSA key to sign file
   masterkey = RSA.importKey(open('masterkey.pem', 'rb').read())
   
-  # Create the hash that will be signed and pre-pended to the  message
+  # Create the signature of the hash that will be pre-pended to the message
   h = SHA256.new(f)
   signer = PKCS1_v1_5.new(masterkey)
   signature = signer.sign(h)

