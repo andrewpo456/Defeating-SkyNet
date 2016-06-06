@@ -13,10 +13,10 @@ attack is and how complex it can be to defend against it.
 
 Please note, that the premise of this project has been taken from the UTS subject 'Fundamentals of Security'.
 
-
-Usage: Solo
-===========
-smerity@pegasus:~/usyd/elec5616_proj/framework$ python3.2 bot.py <br />
+Project Part 1: Security Essentials
+=================
+Usage: Solo Bot Operation
+bot1@botnet$ python3.2 bot.py <br />
 Listening on port 1337 <br />
 Waiting for connection... <br />
 Enter command: mine <br />
@@ -36,12 +36,12 @@ Enter command: upload valuables.txt <br />
 Saved valuables to pastebot.net/valuables.txt for the botnet master <br />
 Enter command: exit <br />
 
-Usage: Peer to Peer (Upload) <br />
+Usage: Peer to Peer Bot Communication (Upload) <br />
 (Note: Requires two bots at the same time) <br />
 ============================
 BOT #1 <br />
 ------
-smerity@pegasus:~/usyd/elec5616_proj/framework$ python3.2 bot.py <br />
+bot1@botnet$ python3.2 bot.py <br />
 Port 1337 not available <br />
 Listening on port 1338 <br />
 Waiting for connection... <br />
@@ -57,7 +57,7 @@ Sending hello.signed via P2P <br />
 ------
 BOT #2
 ------
-smerity@pegasus:~/usyd/elec5616_proj/framework$ python3.2 bot.py <br />
+bot2@botnet$ python3.2 bot.py <br />
 Listening on port 1337 <br />
 Waiting for connection... <br />
 Enter command: list <br />
@@ -71,10 +71,10 @@ Enter command: list <br />
 Files stored by this bot: hello.signed <br />
 Valuables stored by this bot: [] <br />
 
-Usage: Peer to Peer (Echo) <br />
+Usage: Peer to Peer Bot Communication (Echo) <br />
 (Note: Requires two bots at the same time) <br />
 ==========================
-smerity@pegasus:~/usyd/elec5616_proj/framework$ python3.2 bot.py <br />
+bot1@botnet$ python3.2 bot.py <br />
 Listening on port 1337 <br />
 Waiting for connection... <br />
 Enter command: p2p echo <br />
@@ -100,9 +100,11 @@ Encrypted data: b'\x01JQA' <br />
 Original data: b'exit' <br />
 Enter command: exit <br />
 
-Usage -- uploading and viewing secrets
+Project Part 2: Protecting the castle
+=================
+Usage: Bot upload and Master viewing secrets
 ======================================
-smerity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 bot.py <br />
+bot1@botnet$ python3.2 bot.py <br />
 Listening on port 1337 <br />
 Waiting for connection... <br />
 Enter command: mine <br />
@@ -116,17 +118,17 @@ Mined and found Bitcoin address: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 <br />
 Enter command: upload secrets <br />
 Saved valuables to pastebot.net/secrets for the botnet master <br />
 Enter command: exit <br />
-smerity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 master_view.py <br />
+master@botnet$ python3.2 master_view.py <br />
 Which file in pastebot.net does the botnet master want to view? secrets <br />
 Bitcoin: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l <br />
 Bitcoin: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 <br />
 
-Usage -- signing updates and downloading updates
+Usage: Master signing updates and Bots downloading updates
 ================================================
-merity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 master_sign.py <br />
+master@botnet$ python3.2 master_sign.py <br />
 Which file in pastebot.net should be signed? hello.fbi <br />
 Signed file written to pastebot.net/hello.fbi.signed <br />
-smerity@pegasus:~/usyd/elec5616_proj/framework_part2$ python3.2 bot.py <br />
+bot1@botnet$ python3.2 bot.py <br />
 Listening on port 1337 <br />
 Waiting for connection... <br />
 Enter command: download hello.fbi <br />
@@ -137,13 +139,3 @@ Enter command: list <br />
 Files stored by this bot: hello.fbi.signed <br />
 Valuables stored by this bot: [] <br />
 Enter command: exit <br />
-
-
-
-TODO:
--------------------
-+ Enable Signing and verification for any botnet updates
-   1. Signing code in master_sign.py
-   2. Verification code in the verify_file function in lib/files.py 
-+ Ensure upload_valuables_to_pastebot securely encrypts data so it's only accessible to botnet master
-   1. Need to modify master_view.py to allow the file to be decrypted by the botnet master
