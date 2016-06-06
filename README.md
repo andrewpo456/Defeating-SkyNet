@@ -1,3 +1,6 @@
+This project specifically looks at botnets: how they work, why they're valuable 
+and why it's so difficult to defeat them.
+
 Welcome to SkyNet
 =================
 Almost every device with a CPU in it has been connected to the internet. Whilst 
@@ -5,8 +8,6 @@ this is a stunning advance for hummanity, the security for these devices has com
 as an atferthought or not at all. Millions of computers and devices, all with 
 valuable information and processing power are left vunerable to attack.
 
-This project specifically looks at botnets: how they work, why they're valuable 
-and why it's so difficult to defeat them.
 It is important to note that his project is intented for learning purposes only, 
 it is not an operational botnet nor do we intend to create one. It has been 
 created to help gain an understanding in how practical a massive cyber attack is 
