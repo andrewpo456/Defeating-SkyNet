@@ -18,7 +18,7 @@ Project Part 1: Security Essentials
 Usage: Solo Bot Operation (Mining and Downloading files)
 -------------------------------------------------------
 ```
-bot1@botnet$ python3.2 bot.py
+**bot1@botnet[code]$** python3.2 bot.py
 Listening on port 1337
 Waiting for connection...
 Enter command: mine
@@ -27,118 +27,128 @@ Enter command: harvest
 Found user pass: ('Bob', 'pmiMFK')
 Enter command: download hello.signed
 The given file doesn't exist on pastebot.net
-Enter command: download hello.signed <br />
-Stored the received file as hello.signed <br />
-Enter command: download hello.fbi <br />
-The file has not been signed by the botnet master <br />
-Enter command: list <br />
-Files stored by this bot: hello.signed <br />
-Valuables stored by this bot: ['Bitcoin: 3pWw3v08MJO7lDyzXXQ68e0i5enL', 'Username/Password: Bob pmiMFK'] <br />
-Enter command: upload valuables.txt <br />
-Saved valuables to pastebot.net/valuables.txt for the botnet master <br />
-Enter command: exit <br />
+Enter command: download hello.signed 
+Stored the received file as hello.signed 
+Enter command: download hello.fbi 
+The file has not been signed by the botnet master 
+Enter command: list 
+Files stored by this bot: hello.signed 
+Valuables stored by this bot: ['Bitcoin: 3pWw3v08MJO7lDyzXXQ68e0i5enL', 'Username/Password: Bob pmiMFK'] 
+Enter command: upload valuables.txt 
+Saved valuables to pastebot.net/valuables.txt for the botnet master 
+Enter command: exit 
 ```
 Usage: Peer to Peer Bot Communication (Upload)
 ----------------------------------------------
-(Note: Requires two bots at the same time) <br />
+(Note: Requires two bots at the same time) 
 #### Bot 1
-bot1@botnet$ python3.2 bot.py <br />
-Port 1337 not available <br />
-Listening on port 1338 <br />
-Waiting for connection... <br />
-Enter command: download hello.signed <br />
-Stored the received file as hello.signed <br />
-Enter command: list <br />
-Files stored by this bot: hello.signed <br />
-Valuables stored by this bot: [] <br />
-Enter command: p2p upload hello.signed <br />
-Finding another bot... <br />
-Found bot on port 1337 <br />
-Sending hello.signed via P2P <br />
-
+```
+**bot1@botnet[code]$** python3.2 bot.py 
+Port 1337 not available 
+Listening on port 1338 
+Waiting for connection... 
+Enter command: download hello.signed 
+Stored the received file as hello.signed 
+Enter command: list 
+Files stored by this bot: hello.signed 
+Valuables stored by this bot: [] 
+Enter command: p2p upload hello.signed 
+Finding another bot... 
+Found bot on port 1337 
+Sending hello.signed via P2P 
+```
 #### Bot 2
-bot2@botnet$ python3.2 bot.py <br />
-Listening on port 1337 <br />
-Waiting for connection... <br />
-Enter command: list <br />
-Files stored by this bot: <br />
-Valuables stored by this bot: [] <br />
-Accepted a connection from ('127.0.0.1', 36381)... <br />
-Waiting for connection... <br />
-Receiving hello.signed via P2P <br />
-Stored the received file as hello.signed <br />
-Enter command: list <br />
-Files stored by this bot: hello.signed <br />
-Valuables stored by this bot: [] <br />
+```
+**bot2@botnet[code]$** python3.2 bot.py 
+Listening on port 1337 
+Waiting for connection... 
+Enter command: list 
+Files stored by this bot: 
+Valuables stored by this bot: [] 
+Accepted a connection from ('127.0.0.1', 36381)... 
+Waiting for connection... 
+Receiving hello.signed via P2P 
+Stored the received file as hello.signed 
+Enter command: list 
+Files stored by this bot: hello.signed 
+Valuables stored by this bot: [] 
+```
 
 Usage: Peer to Peer Bot Communication (Echo)
 --------------------------------------------
-(Note: Requires two bots at the same time) <br />
-
-bot1@botnet$ python3.2 bot.py <br />
-Listening on port 1337 <br />
-Waiting for connection... <br />
-Enter command: p2p echo <br />
-Finding another bot... <br />
-Found bot on port 1338 <br />
-Shared hash: c2bd47c3ac55f104c052dca02eaa6c9de22e7637370584e5d2ba3c9c81bf2ab8 <br />
-Original data: b'ECHO' <br />
-Encrypted data: b'!qpz' <br />
-Sending packet of length 4 <br />
-Echo> Test <br />
-Original data: b'Test' <br />
-Encrypted data: b'0WKA' <br />
-Sending packet of length 4 <br />
-Receiving packet of length 4 <br />
-Encrypted data: b'0WKA' <br />
-Original data: b'Test' <br />
-Echo> exit <br />
-Original data: b'exit' <br />
-Encrypted data: b'\x01JQA' <br />
-Sending packet of length 4 <br />
-Receiving packet of length 4 <br />
-Encrypted data: b'\x01JQA' <br />
-Original data: b'exit' <br />
-Enter command: exit <br />
+(Note: Requires two bots at the same time) 
+```
+**bot1@botnet[code]$** python3.2 bot.py 
+Listening on port 1337 
+Waiting for connection... 
+Enter command: p2p echo 
+Finding another bot... 
+Found bot on port 1338 
+Shared hash: c2bd47c3ac55f104c052dca02eaa6c9de22e7637370584e5d2ba3c9c81bf2ab8 
+Original data: b'ECHO' 
+Encrypted data: b'!qpz' 
+Sending packet of length 4 
+Echo> Test 
+Original data: b'Test' 
+Encrypted data: b'0WKA' 
+Sending packet of length 4 
+Receiving packet of length 4 
+Encrypted data: b'0WKA' 
+Original data: b'Test' 
+Echo> exit 
+Original data: b'exit' 
+Encrypted data: b'\x01JQA' 
+Sending packet of length 4 
+Receiving packet of length 4 
+Encrypted data: b'\x01JQA' 
+Original data: b'exit' 
+Enter command: exit 
+```
 
 Project Part 2: Protecting the castle
 =====================================
 Usage: Bot upload and Master viewing secrets
 --------------------------------------------
-bot1@botnet$ python3.2 bot.py <br />
-Listening on port 1337 <br />
-Waiting for connection... <br />
-Enter command: mine <br />
-Mining for Bitcoins... <br />
-... <br />
-Mined and found Bitcoin address: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l <br />
-Enter command: mine <br />
-Mining for Bitcoins... <br />
-... <br />
-Mined and found Bitcoin address: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 <br />
-Enter command: upload secrets <br />
-Saved valuables to pastebot.net/secrets for the botnet master <br />
-Enter command: exit <br />
-master@botnet$ python3.2 master_view.py <br />
-Which file in pastebot.net does the botnet master want to view? secrets <br />
-Bitcoin: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l <br />
-Bitcoin: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 <br />
+```
+**bot1@botnet[code]$** python3.2 bot.py 
+Listening on port 1337 
+Waiting for connection... 
+Enter command: mine 
+Mining for Bitcoins... 
+... 
+Mined and found Bitcoin address: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l 
+Enter command: mine 
+Mining for Bitcoins... 
+... 
+Mined and found Bitcoin address: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 
+Enter command: upload secrets 
+Saved valuables to pastebot.net/secrets for the botnet master 
+Enter command: exit 
+master@botnet[code]$ python3.2 master_view.py 
+Which file in pastebot.net does the botnet master want to view? secrets 
+Bitcoin: 1kfRSGOKX8t2jPviL1DwQEu3Kd17l 
+Bitcoin: 34PvZLVfodFkw0ipkCcbAl95HPcz40BKdD2 
+```
 
 Usage: Master signing updates and Bots downloading updates
 ----------------------------------------------------------
 #### Master
-master@botnet$ python3.2 master_sign.py <br />
-Which file in pastebot.net should be signed? hello.fbi <br />
-Signed file written to pastebot.net/hello.fbi.signed <br />
+```
+**master@botnet[code]$** python3.2 master_sign.py 
+Which file in pastebot.net should be signed? hello.fbi 
+Signed file written to pastebot.net/hello.fbi.signed 
+```
 #### Bot
-bot1@botnet$ python3.2 bot.py <br />
-Listening on port 1337 <br />
-Waiting for connection... <br />
-Enter command: download hello.fbi <br />
-The file has not been signed by the botnet master <br />
-Enter command: download hello.fbi.signed <br />
-Stored the received file as hello.fbi.signed <br />
-Enter command: list <br />
-Files stored by this bot: hello.fbi.signed <br />
-Valuables stored by this bot: [] <br />
-Enter command: exit <br />
+```
+**bot1@botnet[code]$** python3.2 bot.py 
+Listening on port 1337 
+Waiting for connection... 
+Enter command: download hello.fbi 
+The file has not been signed by the botnet master 
+Enter command: download hello.fbi.signed 
+Stored the received file as hello.fbi.signed 
+Enter command: list 
+Files stored by this bot: hello.fbi.signed 
+Valuables stored by this bot: [] 
+Enter command: exit 
+```
