@@ -1,20 +1,29 @@
 Welcome to SkyNet
 =================
-Almost every device with a CPU in it has been connected to the internet. Whilst this is a 
-stunning advance for hummanity, the security for these devices has come as an atferthought or not 
-at all. Millions of computers and devices, all with valuable information and processing power 
-are left vunerable to attack.
+Almost every device with a CPU in it has been connected to the internet. Whilst 
+this is a stunning advance for hummanity, the security for these devices has come 
+as an atferthought or not at all. Millions of computers and devices, all with 
+valuable information and processing power are left vunerable to attack.
 
-This project specifically looks at botnets: how they work, why they're valuable and why it's so 
-difficult to defeat them.
-Please note this project is intented for learning purposes only, it is not an operational botnet nor do 
-we intend to create one. It has been created to help gain an understanding in how practical a massive cyber 
-attack is and how complex it can be to defend against it.
+This project specifically looks at botnets: how they work, why they're valuable 
+and why it's so difficult to defeat them.
+It is important to note that his project is intented for learning purposes only, 
+it is not an operational botnet nor do we intend to create one. It has been 
+created to help gain an understanding in how practical a massive cyber attack is 
+and how complex it can be to defend against it.
 
-Please note, that the premise of this project has been taken from the UTS subject 'Fundamentals of Security'.
+Please note, that the premise of this project has been taken from the UTS subject 
+'Fundamentals of Security'.
 
 Project Part 1: Security Essentials
-==================================
+===================================
+Part one of the project aims to secure the channel through which the bots (of the
+botnet) communicate. Using the exchange of a shared secret through Diffie-Hellman,
+messages sent between the bots are encrypted using a symmetric AES cipher. Further,
+methods to prevent replay attacks and ensure message integrity have been implemented
+within the code. The files implementing the aforementioned methods include; lib/comms.py,
+and dh/_init_.py. Some use cases of the code can be found below.
+
 Solo Bot Operation: Mining, Harvesting and Downloading files
 -----------------------------------------------------------
 ```
@@ -102,6 +111,12 @@ Enter command: exit
 
 Project Part 2: Protecting the castle
 =====================================
+Part two of the project implements authentication procedures (signing) for 
+verifying updates from the master and ensuring that valuable secrets stored on 
+‘pastebot.net’ are only accessible by the botnet master. The files enforcing these
+security aspects include; lib/files.py, master_view.py and master_sign.py. 
+Some use cases of the code can be found below.
+
 Master Viewing Secrets
 ----------------------
 #### Bot
