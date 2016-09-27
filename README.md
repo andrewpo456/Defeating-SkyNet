@@ -10,8 +10,6 @@ it is not an operational botnet nor do we intend to create one. It has been
 created to help gain an understanding in how practical a massive cyber attack is 
 and how complex it can be to defend against it.
 
-Please note, that the premise of this project has been taken from the UTS subject 
-'Fundamentals of Security'.
 
 Project Part 1: Security Essentials
 ===================================
