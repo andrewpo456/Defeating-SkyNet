@@ -160,5 +160,3 @@ Files stored by this bot: hello.fbi.signed
 Valuables stored by this bot: [] 
 Enter command: exit 
 ```
-
-This is a test
