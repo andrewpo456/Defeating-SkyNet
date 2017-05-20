@@ -160,3 +160,11 @@ Files stored by this bot: hello.fbi.signed
 Valuables stored by this bot: [] 
 Enter command: exit 
 ```
+
+# Mentions
+
+The base code and requirements for this project can be found [here](https://github.com/spble/skynet_intro).
+
+## Contributors
++ [Pope. A](https://github.com/andrewpo456)
++ Mehta. N
